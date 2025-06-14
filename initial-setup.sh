@@ -634,7 +634,7 @@ setup_infrastructure() {
     echo "  Configuring AWS CLI..."
     aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID" >/dev/null
     aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY" >/dev/null
-    aws configure set default.region us-east-1 >/dev/null
+    aws configure set default.region "$AWS_SES_REGION" >/dev/null
     
     # Create DigitalOcean Spaces bucket for Terraform state
     echo "  Creating DigitalOcean Spaces bucket..."
@@ -707,7 +707,7 @@ setup_infrastructure() {
     echo "  Setting up AWS SES for domain verification..."
     
     # Verify domain with SES
-    if aws ses verify-domain-identity --domain "$SETUP_REPO_DOMAIN" --region us-east-1 >/dev/null 2>&1; then
+    if aws ses verify-domain-identity --domain "$SETUP_REPO_DOMAIN" --region "$AWS_SES_REGION" >/dev/null 2>&1; then
         echo -e "${GREEN}✓ Domain verification initiated${NC}"
     else
         echo -e "${YELLOW}⚠ Domain verification may already be set up${NC}"
@@ -778,7 +778,7 @@ def derive_smtp_password(secret_access_key, region='us-east-1'):
     ).digest()
     return base64.b64encode(signature).decode('utf-8')
 
-print(derive_smtp_password('$smtp_secret_key'))
+print(derive_smtp_password('$smtp_secret_key', '$AWS_SES_REGION'))
 ")
         echo -e "${GREEN}✓ SMTP credentials generated${NC}"
     else
@@ -827,7 +827,7 @@ print(derive_smtp_password('$smtp_secret_key'))
     local verification_token
     verification_token=$(aws ses get-identity-verification-attributes \
         --identities "$SETUP_REPO_DOMAIN" \
-        --region us-east-1 \
+        --region "$AWS_SES_REGION" \
         --query "VerificationAttributes.\"$SETUP_REPO_DOMAIN\".VerificationToken" \
         --output text 2>/dev/null)
     
@@ -839,11 +839,11 @@ print(derive_smtp_password('$smtp_secret_key'))
     fi
     
     # Get DKIM tokens
-    aws ses put-identity-dkim-attributes --identity "$SETUP_REPO_DOMAIN" --dkim-enabled --region us-east-1 >/dev/null 2>&1
+    aws ses put-identity-dkim-attributes --identity "$SETUP_REPO_DOMAIN" --dkim-enabled --region "$AWS_SES_REGION" >/dev/null 2>&1
     local dkim_tokens
     dkim_tokens=$(aws ses get-identity-dkim-attributes \
         --identities "$SETUP_REPO_DOMAIN" \
-        --region us-east-1 \
+        --region "$AWS_SES_REGION" \
         --query "DkimAttributes.\"$SETUP_REPO_DOMAIN\".DkimTokens" \
         --output text 2>/dev/null)
     
@@ -1313,6 +1313,7 @@ interactive_setup() {
     prompt_with_default "Keycloak realm name" "$DEFAULT_KEYCLOAK_REALM" "SETUP_REPO_KEYCLOAK_REALM"
     prompt_with_default "Backup retention period" "$DEFAULT_BACKUP_RETENTION" "SETUP_REPO_BACKUP_RETENTION"
     prompt_with_default "Spaces region" "$DEFAULT_SPACES_REGION" "SETUP_REPO_SPACES_REGION"
+    prompt_with_default "AWS SES region" "$SETUP_REPO_REGION" "AWS_SES_REGION"
     prompt_with_default "Let'\''s Encrypt email" "$SETUP_REPO_EMAIL" "SETUP_REPO_LETSENCRYPT_EMAIL"
     
     echo
