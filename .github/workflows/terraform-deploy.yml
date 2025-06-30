@@ -87,9 +87,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'pnpm'
-      
-      - name: Build platform
-        run: pnpm run build
+          cache-dependency-path: 'pnpm-lock.yaml'
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -97,7 +95,7 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
       
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
       
       - name: Build platform
         run: |
